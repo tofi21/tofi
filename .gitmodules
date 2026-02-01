@@ -1,0 +1,6 @@
+[submodule "tofi-core"]
+	path = tofi-core
+	url = https://github.com/tofi21/tofi-core.git
+[submodule "tofi-ui"]
+	path = tofi-ui
+	url = https://github.com/JackZhao98/tofi-ui.git
