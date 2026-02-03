@@ -65,3 +65,63 @@
 
 **Impact**: All workflows with `{{variable}}` references now work correctly in UI
 **Documentation**: Created `docs/UI_DEPENDENCIES_FIX.md` with technical details
+
+---
+
+## 2026-02-04 - Boolean Node System & Legacy Cleanup
+
+### Boolean Node System ✅
+**Status**: Completed
+**Goal**: Replace legacy logic nodes with a cleaner boolean-based system inspired by Apple Shortcuts.
+
+**New Nodes**:
+1. **Compare** (`compare.go`, `compare.schema.ts`)
+   - Dual-input comparison node
+   - Operators: `==`, `!=`, `>`, `<`, `>=`, `<=`, `between`, `contains`, `not_contains`, `starts_with`, `ends_with`, `matches`, `in`, `not_in`
+   - Output: `"true"` or `"false"` (string)
+   - Type-aware: numeric operators require numbers, string operators convert to string
+
+2. **Check** (`check.go`, `check.schema.ts`)
+   - Single-input validation node
+   - Operators: `is_empty`, `not_empty`, `is_true`, `is_false`, `is_number`, `is_json`
+   - Output: `"true"` or `"false"` (string)
+
+3. **Branch** (`branch.go`)
+   - Flow router based on boolean condition
+   - Config: `condition`, `on_true`, `on_false`
+   - Frontend auto-generates branch node when Compare has `on_true`/`on_false` configured
+
+**Frontend Integration**:
+- Compare UI node auto-generates `compare` + `branch` backend nodes via serializer
+- Deserializer merges them back into single frontend node
+- Updated `nodeMetadata.ts` with new node entries
+
+### Legacy Node Cleanup ✅
+**Status**: Completed
+**Removed Nodes**:
+- `math.go`, `math.schema.ts` - Superseded by `compare` with numeric operators
+- `text.go`, `text.schema.ts` - Superseded by `compare` with string operators
+- `list.go` - Superseded by `compare` with `in`/`not_in` operators
+- `if.go`, `if.schema.ts` - Superseded by `compare` + `branch` combination
+
+**Updated Files**:
+- `engine.go` - Removed legacy node registrations
+- `serializer.ts` - Removed legacy node handlers
+- `NodePropertiesPanel.tsx` - Removed legacy schema imports
+- `NodeSchemaTestPage.tsx` - Updated test page
+- `NODE_REFERENCE.md` - Removed legacy documentation
+
+### Node Panel Reorganization ✅
+**Status**: Completed
+**New Categories**:
+1. **Intelligence** - AI
+2. **Data** - Variable, Dict
+3. **Flow Control** - Compare, Check, Loop, Hold
+4. **Experimental** (Work in progress) - Workflow, File, Shell
+
+**Hidden Nodes**:
+- `secret` - Temporarily hidden (category: `_hidden`), pending design review for sub-workflow integration
+
+### Architecture Decision: Config-based Special Fields
+**Decision**: `on_true`/`on_false` stored in `config` (方案C)
+**Rationale**: Keeps Node struct clean, special routing logic handled by engine via config lookup
