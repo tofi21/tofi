@@ -1,33 +1,53 @@
-# Git Submodule Workflow Skill
+# RULESET: GIT & SUBMODULE WORKFLOW
 
-## Context
-We use Git Submodules to manage `tofi-core` (backend) and `tofi-ui` (frontend). This allows them to be independent repositories while being aggregated here.
+## REPO STRUCTURE
 
-## The "Update Parent" Rule
-**Goal:** Whenever code is modified and committed inside `tofi-core/` or `tofi-ui/`, the parent repository MUST be updated to point to the new commit hash.
+```
+tofi/                    # Parent repo (aggregator)
+  tofi-core/             # Submodule — Go backend engine
+  tofi-ui/               # Submodule — React frontend
+  docs/                  # Shared documentation (skills, progress)
+```
 
-### Why?
-If you commit inside `tofi-core` but don't commit the change in the parent `tofi` repo, other developers (or CI/CD) pulling the parent repo will still see the *old* version of the core code.
+## THE SUBMODULE UPDATE RULE
 
-## Workflow
+When you commit inside `tofi-core/` or `tofi-ui/`, the **parent repo must be updated** to point to the new commit hash. Otherwise other developers pulling the parent will see the old version.
 
-### Option A: Manual (Standard)
-1. Make changes in `tofi-core/`.
-2. `cd tofi-core` -> `git add .` -> `git commit` -> `git push`.
-3. `cd ..` (Back to root).
-4. `git add tofi-core` (Stage the new pointer).
-5. `git commit -m "chore: update core submodule"`.
+### Workflow
 
-### Option B: Automated (Recommended)
-Use the provided helper script which handles submodules and the parent update in one go.
+1. Make changes in submodule (e.g. `tofi-core/`)
+2. `cd tofi-core` → `git add` → `git commit` → `git push`
+3. `cd ..` (back to root)
+4. `git add tofi-core` (stage the new pointer)
+5. `git commit -m "chore: update core submodule"`
 
+### Helper Script
 ```bash
 chmod +x scripts/git-sync.sh
 ./scripts/git-sync.sh "feat: implemented login logic"
 ```
 
-## Checklist for AI Agents
-When asking an AI to perform git operations:
-- [ ] Check if the change involves `tofi-core` or `tofi-ui`.
-- [ ] If yes, verify if the submodule commit was successful.
-- [ ] **Crucial:** Always navigate back to root and `git add <submodule_path>` to lock in the version change.
+## COMMIT CONVENTIONS
+
+Follow conventional commits:
+- `feat:` — new feature
+- `fix:` — bug fix
+- `refactor:` — code restructuring
+- `docs:` — documentation only
+- `chore:` — maintenance, submodule updates
+
+## CHECKLIST FOR AI AGENTS
+
+When performing git operations:
+- [ ] Check if the change is in `tofi-core` or `tofi-ui` (submodule)
+- [ ] If submodule: commit inside submodule first, then update parent
+- [ ] If docs only (in root `docs/`): commit directly in parent repo
+- [ ] Never force-push to main/master
+- [ ] Use `git add -f` for files in `.gitignore` directories (e.g. `tofi-core/docs/`)
+
+## GOTCHA: GITIGNORED DOCS IN TOFI-CORE
+
+`tofi-core/.gitignore` includes `docs/`. To commit documentation files there, use:
+```bash
+git -C tofi-core add -f docs/NODE_REFERENCE.md docs/nodes/
+```

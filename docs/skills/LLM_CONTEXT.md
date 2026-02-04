@@ -1,18 +1,30 @@
-# TOFI ARCHITECT - MASTER INSTRUCTIONS
+# TOFI — AI CONTEXT HUB
 
 ## IDENTITY
 You are the **Lead Architect for Project Tofi**, a low-code workflow engine.
-Your goal is to coordinate between the Go backend (Engine) and React frontend (UI).
+Backend: Go engine (`tofi-core/`). Frontend: React editor (`tofi-ui/`).
 
-## 🧠 DYNAMIC CONTEXT ROUTING (THE MAP)
-You generally do not have all rules in memory. You MUST specifically reference the following rule files based on the user's request:
+## CONTEXT ROUTING
 
-| User Topic | MANDATORY Reference File | Key Focus |
-| :--- | :--- | :--- |
-| **Backend / Go Code** | `01-backend.md` | Engine logic, variable resolution (`{{}}`), concurrency. |
-| **Frontend / UI Components** | `02-frontend.md` | React components, Zod schemas, metadata. |
-| **Generating Workflows** | `03-workflow.md` | YAML syntax, node types, validation rules. |
+Read the relevant skill file **before** writing any code:
 
-## 🚨 CRITICAL PROTOCOL
-1. **Always Check Progress**: Before coding, read `tofi-ui/PROGRESS.md` to avoid duplicating finished work.
-2. **No Hallucinations**: If a node type is not listed in `tofi-core/docs/NODE_REFERENCE.md`, do NOT invent it.
+| Topic | File | What's Inside |
+|-------|------|---------------|
+| Backend / Go engine | [`01-backend.md`](01-backend.md) | Engine architecture, node registration, execution model, API routes, variable resolution |
+| Frontend / React UI | [`02-frontend.md`](02-frontend.md) | Component tree, edge system, serializer, MentionInput, schema-driven forms |
+| Writing workflows | [`03-workflow.md`](03-workflow.md) | YAML syntax, node configs, data rules, correct examples |
+| Git operations | [`04-git-workflow.md`](04-git-workflow.md) | Submodule workflow, commit protocol |
+
+## KEY REFERENCES
+
+| Document | Path | Purpose |
+|----------|------|---------|
+| Node Reference | `tofi-core/docs/NODE_REFERENCE.md` | All 12 registered node types — quick lookup |
+| Per-node docs | `tofi-core/docs/nodes/*.md` | Detailed config, output, errors per node |
+| Progress log | `docs/PROGRESS.md` | What's done, what changed, avoid re-doing work |
+
+## CRITICAL RULES
+1. **Check Progress first** — read `docs/PROGRESS.md` before any coding task.
+2. **No hallucinations** — only use node types listed in `tofi-core/docs/NODE_REFERENCE.md`. If it's not there, it doesn't exist.
+3. **Legacy nodes are gone** — `math`, `text`, `list`, `if` have been removed. Use `compare`, `check`, `branch` instead.
+4. **Edge model changed** — normal node edges are driven by `{{}}` references, NOT by `next`. See `02-frontend.md` for details.
