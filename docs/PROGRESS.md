@@ -125,3 +125,37 @@
 ### Architecture Decision: Config-based Special Fields
 **Decision**: `on_true`/`on_false` stored in `config` (方案C)
 **Rationale**: Keeps Node struct clean, special routing logic handled by engine via config lookup
+
+### Boolean Node Canvas Integration ✅
+**Status**: Completed
+- Compare/Check nodes display dual T/F output handles on canvas (emerald=true, red=false)
+- Added `NodeMultiSelect` component for selecting target nodes in `on_true`/`on_false`
+- Handle backgrounds use opaque dark fills to avoid border bleed-through
+
+### MentionInput Zero-Width Space & Unrestricted @ Trigger ✅
+**Status**: Completed
+- Replaced visible spaces around `@mention` tags with zero-width spaces (`\u200B`) for Slack-like experience
+- Tags no longer produce visual gaps in text
+- `findAdjacentTag` treats `ZWS + tag + ZWS` as atomic unit for arrow/delete navigation
+- Removed restriction requiring space before `@` to trigger popup — `@` now works at any position
+
+### Reference-Driven Edge Architecture ✅
+**Status**: Completed
+**Goal**: Separate data references from trigger relationships. Edges should follow `{{}}` references, not manual `next`.
+
+**Key Architectural Change**:
+- **Old model**: All edges driven by `next` field. `{{}}` references only affect `dependencies`.
+- **New model**: Normal node edges are computed from `{{}}` references. Only Compare/Check retain active trigger via `on_true`/`on_false`.
+
+| Node Type | Edge Source | Behavior |
+| :--- | :--- | :--- |
+| Normal (ai, var, dict, etc.) | `{{}}` references | B has `{{A}}` → edge A→B auto-appears; remove reference → edge disappears |
+| Compare/Check | `on_true`/`on_false` | T/F branches, the only nodes that can actively "trigger" |
+
+**Core Changes**:
+- `edgeSync.ts`: `generateEdgesFromTriggerMap()` now derives edges from `{{}}` refs (reverse lookup) + `on_true`/`on_false`. New `syncNodeRelations()` auto-computes both `dependencies` and `next` for normal nodes.
+- `WorkflowCanvas.tsx`: `onConnect` inserts `{{sourceId}}` into target's primary input field. `onEdgeDelete` removes `{{sourceId}}` from target.
+- `serializer.ts`: `nextMap` only collects `sourceHandle='out'` edges. Deserialization migrates legacy `next` by auto-adding `{{}}` references.
+- `EditorInspector.tsx`: Added upstream trigger banner when a node is triggered by both `{{}}` references and Compare/Check T/F branches.
+
+**Constants**: `BOOLEAN_NODE_TYPES = Set(['compare', 'check'])` — single source of truth for which nodes have T/F branching capability.
