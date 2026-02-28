@@ -159,3 +159,81 @@
 - `EditorInspector.tsx`: Added upstream trigger banner when a node is triggered by both `{{}}` references and Compare/Check T/F branches.
 
 **Constants**: `BOOLEAN_NODE_TYPES = Set(['compare', 'check'])` — single source of truth for which nodes have T/F branching capability.
+
+---
+
+## 2026-02-28 - File Container System, Save Node & Artifact Improvements
+
+### Save Node ✅
+**Status**: Completed
+**Goal**: Add a dedicated node for saving content to the artifacts directory.
+
+- [x] **Backend (`save.go`)**: Saves content to `{artifacts_dir}/{filename}`, supports base64 binary
+- [x] **Engine registration**: Added `save` case in `GetAction()` (`engine.go`)
+- [x] **Frontend Schema (`save.schema.ts`)**: Fields: `content` (textarea, allows data refs), `filename` (text)
+- [x] **Schema registry**: Registered in `schemas/index.ts`
+
+### File Node Container Refactor ✅
+**Status**: Completed
+**Goal**: Transform the File node from a simple file-library loader into a versatile file container that supports both upstream data input and user uploads.
+
+**Backend (`file.go`, 40→300+ lines)**:
+- [x] **Dual input mode**: `_input` (upstream data) vs `file_id`/`file_path` (user upload)
+- [x] **File ID system**: Database lookup via `file_id` (new) alongside legacy `file_path` symlink approach
+- [x] **save_to_disk option**: When receiving upstream data, optionally persist to artifacts directory
+- [x] **Structured JSON output**: `{"path", "filename", "mime_type", "size", "file_id"}` (replaces raw path string)
+- [x] **On-demand content resolution**: `{{file_node.content}}` reads file from disk or UpstreamContent map
+- [x] **MIME detection**: Auto-detect content type from file headers
+- [x] **Base64 binary support**: `base64:` prefix for binary upstream data
+
+**Engine (`engine.go`)**:
+- [x] File node special handling: injects first dependency's output as `_input` into config
+
+**Models (`models.go`)**:
+- [x] `UserFileRecord`: new fields `WorkflowID`, `NodeID`, `Source` ("library"|"workflow")
+- [x] `ArtifactRecord`: new fields `RelativePath`, `MimeType`
+- [x] `ExecutionContext.UpstreamContent`: map for non-disk file content
+- [x] `resolveFileContent()`: on-demand `.content` field resolution
+- [x] Artifacts path changed: `{workflow}/{execution_id}/` (isolated per execution)
+
+**Storage (`sqlite.go`)**:
+- [x] Migration: `user_files` table gets `workflow_id`, `node_id`, `source` columns
+- [x] Migration: `execution_artifacts` table gets `mime_type`, `relative_path` columns
+- [x] New methods: `SaveWorkflowFile()`, `ListWorkflowFiles()`
+
+### Workflow File Links API ✅
+**Status**: Completed
+**New API Endpoints**:
+- [x] `POST /api/v1/workflows/{id}/files` — Create file link (symlink)
+- [x] `POST /api/v1/workflows/{id}/files/upload` — Upload file to workflow
+- [x] `DELETE /api/v1/workflows/{id}/files/{filename}` — Delete file link
+
+### File Preview & Artifacts Enhancements ✅
+**Status**: Completed
+- [x] **File preview API**: `GET /api/v1/files/{id}/preview` — inline thumbnail display
+- [x] **Artifact download**: Supports `?mode=preview` for inline display (vs attachment download)
+- [x] **Artifacts API**: Now returns structured `ArtifactRecord` objects (with `mime_type`, `relative_path`) instead of plain filename strings
+- [x] **Artifact path fallback**: Tries new `{workflow}/{exec_id}/` path, falls back to legacy `{workflow}/` path
+
+### Frontend: File Node UI ✅
+**Status**: Completed
+- [x] **FileNode component simplified**: From complex upload UI to clean container display (`FileNode.tsx`)
+- [x] **File moved to Data category**: `nodeMetadata.ts` — "Experimental" → "Data", color zinc → emerald
+- [x] **File schema expanded** (`file.schema.ts`): Added `file_path`, `filename`, `mime_type`, `save_to_disk` fields (all managed by FileInspector, hidden from generic panel)
+- [x] **EdgeSync container support** (`edgeSync.ts`): File node uses `dependencies` instead of `{{}}` refs for connections. Removed `file` from `PRIMARY_INPUT_FIELD`. Added `'content'` to `FIELDS_TO_SCAN`.
+
+### Frontend: MentionInput File Submenu ✅
+**Status**: Completed
+- [x] **Three-level submenu** for File nodes in MentionInput:
+  - Level 1: File node entry (click to expand)
+  - Level 2: Common keys (`content`, `filename`) + "Advanced" button
+  - Level 3: Advanced keys (`path`, `mime_type`, `size`, `file_id`)
+- [x] **DataSource type extended** (`types.ts`): Added `fileKeys`, `advancedKeys`, `requiresSubmenu`
+- [x] **useDataSources hook**: Auto-populates File node keys
+- [x] **Keyboard navigation**: Full arrow/enter/escape support across all 3 levels
+
+### Frontend: ArtifactsPage Enhancements ✅
+**Status**: Completed
+- [x] MIME-type-based file icons (image/code/text/generic)
+- [x] Inline preview support for text and image artifacts
+- [x] Structured artifact records with metadata display

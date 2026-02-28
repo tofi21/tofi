@@ -28,7 +28,7 @@ tofi-ui/src/
     utils.ts                      # General utilities
   schemas/
     index.ts                      # Schema registry (registerSchema, getSchemaByType)
-    ai.schema.ts                  # + 11 more schema files (one per node type)
+    ai.schema.ts                  # + 12 more schema files (one per node type, including save)
   config/
     nodeMetadata.ts               # Node icons, colors, categories
   components/editor/
@@ -43,6 +43,7 @@ tofi-ui/src/
     nodes/
       BaseNode.tsx                # Base node component (handles, labels)
       TaskNode.tsx                # Generic task node renderer
+      FileNode.tsx                # File container node (simplified display)
     edges/                        # Edge components
     fields/                       # Form field components
     MentionInput/
@@ -78,7 +79,7 @@ Two distinct systems for edges:
 
 ### 1. Reference-Driven Edges (Normal Nodes)
 
-Normal nodes (ai, var, dict, shell, hold, file, workflow, loop) do **NOT** use manual `next`. Edges are **auto-computed from `{{}}` references**:
+Normal nodes (ai, var, dict, shell, hold, save, workflow, loop) do **NOT** use manual `next`. Edges are **auto-computed from `{{}}` references**:
 
 - If node B's config contains `{{A}}` → edge A→B auto-appears
 - Removing `{{A}}` from B → edge disappears
@@ -86,13 +87,16 @@ Normal nodes (ai, var, dict, shell, hold, file, workflow, loop) do **NOT** use m
 - Dragging a connection on canvas inserts `{{sourceId}}` into target's primary input field
 - Deleting an edge removes `{{sourceId}}` from target
 
+**Exception — File container nodes**: `file` nodes use `dependencies` directly instead of `{{}}` references. Dragging a connection to a File node adds the source to `dependencies` (not a field). Removing a connection removes from `dependencies`.
+
 **Key constants** in `edgeSync.ts`:
 ```typescript
 BOOLEAN_NODE_TYPES = new Set(['compare', 'check'])
 FIELDS_TO_SCAN = ['prompt', 'command', 'url', 'expression', 'value',
                   'body', 'headers', 'input', 'left', 'right',
-                  'text', 'pattern', 'list']
-PRIMARY_INPUT_FIELD = { ai: 'prompt', shell: 'command', ... }
+                  'text', 'pattern', 'list', 'content']
+PRIMARY_INPUT_FIELD = { ai: 'prompt', shell: 'command', save: 'content', ... }
+// Note: 'file' is NOT in PRIMARY_INPUT_FIELD — it's a container node
 ```
 
 ### 2. Boolean Trigger Edges (Compare/Check Only)
@@ -144,15 +148,27 @@ PRIMARY_INPUT_FIELD = { ai: 'prompt', shell: 'command', ... }
 - **`htmlToValue`** strips ZWS during serialization to YAML
 - **DictMentionInput**: Specialized variant for dict field values
 
+### Submenu System
+
+**Dict nodes**: Two-level menu — select node → select key from `dictKeys`
+
+**File nodes**: Three-level menu with `fileKeys`, `advancedKeys`, `requiresSubmenu`:
+- Level 1: File node entry (click to expand)
+- Level 2: Common keys (`content`, `filename`) + "Advanced" button
+- Level 3: Advanced keys (`path`, `mime_type`, `size`, `file_id`)
+- `useDataSources.ts` auto-populates these keys for File nodes
+- Full keyboard navigation (arrow/enter/escape) across all levels
+
 ## NODE METADATA
 
 ```typescript
 NODE_CATEGORIES = [
   { title: 'Intelligence', items: ['ai'] },
-  { title: 'Data',         items: ['var', 'dict'] },
+  { title: 'Data',         items: ['var', 'dict', 'file'] },
   { title: 'Flow Control', items: ['compare', 'check', 'loop', 'hold'] },
-  { title: 'Experimental', items: ['workflow', 'file', 'shell'] },
+  { title: 'Experimental', items: ['workflow', 'shell'] },
   // secret: category '_hidden' — not shown in palette
+  // save: registered in schema but not yet in palette
 ]
 ```
 

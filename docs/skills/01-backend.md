@@ -26,7 +26,8 @@ tofi-core/
         ai.go             # LLM inference (OpenAI-compatible, MCP agent mode)
         shell.go          # Bash script execution (60s timeout)
         hold.go           # Manual approval gate (polling)
-        file.go           # File library loader
+        file.go           # File container (upstream input + user upload, JSON output)
+        save.go           # Save content to artifacts directory
         handoff.go        # Sub-workflow handoff (max depth 10)
         api.go            # HTTP request (NOT registered in GetAction)
     models/
@@ -53,6 +54,7 @@ case "shell":    return &tasks.Shell{}
 case "ai":       return &tasks.AI{}
 case "hold":     return &tasks.Hold{}
 case "file":     return &tasks.File{}
+case "save":     return &tasks.Save{}
 case "workflow":  return &tasks.Handoff{}
 case "check":    return &logic.Check{}
 case "compare":  return &logic.Compare{}
@@ -111,9 +113,10 @@ type Node struct {
    - Others: `ResolveLocalContext()` → `ResolveConfig()` (two-phase resolution)
    - Secret references (`ref:SECRET_NAME`) resolved via DB lookup
    - Dict's `fields` skipped during template resolution (handled internally)
-6. **Execute with timeout** — goroutine + channel + `context.WithTimeout`
-7. **Retry** — up to `RetryCount` attempts
-8. **Result handling**:
+6. **File node injection** — if `node.Type == "file"` and has dependencies, inject first dependency's output as `_input`
+7. **Execute with timeout** — goroutine + channel + `context.WithTimeout`
+8. **Retry** — up to `RetryCount` attempts
+9. **Result handling**:
    - Success → `SetResult(nodeID, output)` → trigger `Next`
    - Error → `SetResult(nodeID, "ERR_PROPAGATION: ...")` → trigger `Next` + `OnFailure`
    - Branch special: reads `on_true`/`on_false` from Config to determine routing
@@ -128,6 +131,8 @@ Resolution order (see `ResolveLocalContext` + `ReplaceParams`):
 4. **Environment** — `{{env.VAR_NAME}}`
 
 Secret reference format in config: `ref:SECRET_NAME` → resolved at runtime via encrypted DB lookup.
+
+**Special resolution**: `{{file_node.content}}` — if the referenced node output has `path` + `mime_type` fields (File node), content is resolved on-demand via `resolveFileContent()` (reads from disk or `UpstreamContent` map).
 
 ## EDGE INFERENCE (InferEdges)
 
@@ -151,11 +156,18 @@ Protected (JWT):
   GET    /api/v1/executions                        # List executions
   GET    /api/v1/executions/{id}                   # Get execution detail
   GET    /api/v1/executions/{id}/logs              # Stream logs
-  GET    /api/v1/executions/{id}/artifacts         # List artifacts
+  GET    /api/v1/executions/{id}/artifacts         # List artifacts (returns ArtifactRecord[])
   POST   /api/v1/executions/{id}/nodes/{nid}/approve  # Approve/reject hold
   POST   /api/v1/executions/{id}/cancel            # Cancel execution
   GET/POST/DELETE /api/v1/workflows                # CRUD workflows
   POST   /api/v1/workflows/validate                # Validate YAML
+  POST   /api/v1/workflows/{id}/files              # Create workflow file link
+  POST   /api/v1/workflows/{id}/files/upload       # Upload file to workflow
+  DELETE /api/v1/workflows/{id}/files/{filename}   # Delete workflow file link
+  GET    /api/v1/files                             # List user files
+  POST   /api/v1/files                             # Upload file to library
+  GET    /api/v1/files/{id}/preview                # File thumbnail preview
+  DELETE /api/v1/files/{id}                        # Delete file
   POST/GET/DELETE /api/v1/secrets                   # Secret management
 
 Admin:

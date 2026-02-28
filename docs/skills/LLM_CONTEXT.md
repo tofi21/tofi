@@ -19,7 +19,7 @@ Read the relevant skill file **before** writing any code:
 
 | Document | Path | Purpose |
 |----------|------|---------|
-| Node Reference | `tofi-core/docs/NODE_REFERENCE.md` | All 12 registered node types — quick lookup |
+| Node Reference | `tofi-core/docs/NODE_REFERENCE.md` | All 13 registered node types — quick lookup |
 | Per-node docs | `tofi-core/docs/nodes/*.md` | Detailed config, output, errors per node |
 | Progress log | `docs/PROGRESS.md` | What's done, what changed, avoid re-doing work |
 
@@ -27,4 +27,6 @@ Read the relevant skill file **before** writing any code:
 1. **Check Progress first** — read `docs/PROGRESS.md` before any coding task.
 2. **No hallucinations** — only use node types listed in `tofi-core/docs/NODE_REFERENCE.md`. If it's not there, it doesn't exist.
 3. **Legacy nodes are gone** — `math`, `text`, `list`, `if` have been removed. Use `compare`, `check`, `branch` instead.
-4. **Edge model changed** — normal node edges are driven by `{{}}` references, NOT by `next`. See `02-frontend.md` for details.
+4. **Edge model changed** — normal node edges are driven by `{{}}` references, NOT by `next`. File nodes use `dependencies` directly (container nodes). See `02-frontend.md` for details.
+5. **File node is a container** — outputs JSON metadata, content resolved on-demand via `{{file.content}}`. See `nodes/file.md`.
+6. **Save node exists** — saves content to artifacts directory. See `nodes/save.md`.
