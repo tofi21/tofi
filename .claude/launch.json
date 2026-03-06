@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tofi-ui",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173,
+      "cwd": "tofi-ui"
+    },
+    {
+      "name": "tofi-core",
+      "runtimeExecutable": "./tofi-server",
+      "runtimeArgs": ["server"],
+      "port": 8080,
+      "cwd": "tofi-core"
+    }
+  ]
+}
